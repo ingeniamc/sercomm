@@ -1,0 +1,13 @@
+# CMake
+build/
+
+# Vim
+*.swp
+*.swo
+
+# VS
+Win32
+*.dir
+
+# OS
+.DS_Store

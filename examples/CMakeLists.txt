@@ -1,0 +1,6 @@
+file(GLOB APP_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.c)
+foreach(APP_SRC ${APP_SRCS})
+  string(REPLACE ".c" "" APP_NAME ${APP_SRC})
+  add_executable(${APP_NAME} ${APP_SRC})
+  target_link_libraries(${APP_NAME} sercomm)
+endforeach()
