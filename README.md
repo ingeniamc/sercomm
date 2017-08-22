@@ -40,7 +40,7 @@ The following build options are available:
 
 - `WITH_EXAMPLES` (OFF): When enabled, the library usage example applications
   will be built.
-- `WITH_DOCS` (OFF): When enabled the API documentation will be built.
+- `WITH_DOCS` (OFF): When enabled the API documentation can be built.
 - `WITH_ERRDESC` (ON): When enabled, error details description can be obtained.
 - `WITH_GITINFO` (OFF): When enabled, the current Git commit hash will be
   included in version. This may be useful to trace installed development builds.
@@ -54,7 +54,6 @@ read this list of [useful CMake variables][cmakeuseful].
 
 ## Standards Compliance
 
-The public API of `libsercomm` is [ANSI C][ansic] (C89) compatible (fixed
-integers required). Internally, `libsercomm` is written in C99.
+`libsercomm` is written in [ANSI C][ansic] (C99).
 
 [ansic]: http://en.wikipedia.org/wiki/ANSI_C
