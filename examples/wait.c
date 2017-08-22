@@ -1,6 +1,7 @@
 /**
  * @example wait.c
- * Wait until data is received.
+ * Print all incoming data until no more bytes are received whithin the
+ * given timeout.
  */
 
 #include <stdio.h>
@@ -37,24 +38,35 @@ int32_t run(const char *port, uint32_t baudrate, int32_t timeout)
         goto cleanup_ser;
     }
 
-    /* wait until at least one char is received */
-    printf("Waiting for a character...\n");
-
-    r = ser_read_wait(ser);
-    if (r < 0)
+    /* read until no more bytes are received whithin the given timeout */
+    while (1)
     {
-        fprintf(stderr, "Error while waiting: %s\n", sererr_last());
-        goto cleanup_close;
+        r = ser_read(ser, &c, sizeof(c), NULL);
+        if (r == SER_EEMPTY)
+        {
+            r = ser_read_wait(ser);
+            if (r == SER_ETIMEDOUT)
+            {
+                break;
+            }
+            else if (r < 0)
+            {
+                fprintf(stderr, "Error while waiting: %s\n", sererr_last());
+                goto cleanup_close;
+            }
+        }
+        else if (r < 0)
+        {
+            fprintf(stderr, "Could not read: %s\n", sererr_last());
+            goto cleanup_close;
+        }
+        else
+        {
+            printf("%c", c);
+        }
     }
 
-    r = ser_read(ser, &c, sizeof(c), NULL);
-    if (r < 0)
-    {
-        fprintf(stderr, "Could not read: %s\n", sererr_last());
-        goto cleanup_close;
-    }
-
-    printf("Got: %c\n", c);
+    printf("\nDone!\n");
 
 cleanup_close:
     ser_close(ser);
@@ -70,7 +82,7 @@ int main(int argc, char *argv[])
 {
     char *port;
     uint32_t baudrate;
-    int32_t timeout = SER_NO_TIMEOUT;
+    int32_t timeout = 1000;
 
     /* parse options */
     if (argc < 3)
