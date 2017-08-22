@@ -3,11 +3,6 @@
 `libsercomm` is a portable, pure C implementation library for serial
 communications.
 
-`libsercomm` is licensed under a **very permissive license** (GPLv2 with a
-special Linking Exception). This basically means that you can link it
-(unmodified) with any kind of software without having to release its source
-code.
-
 ## What It Can Do
 
 The library provides:
