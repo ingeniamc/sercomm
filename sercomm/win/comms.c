@@ -319,7 +319,24 @@ int32_t ser_flush(ser_t *inst, ser_queue_t flush)
     return 0;
 }
 
-int32_t ser_read_wait(ser_t *inst, size_t *available)
+int32_t ser_available(ser_t *inst, size_t *available)
+{
+    int32_t r = 0;
+    COMSTAT cs;
+
+    if (ClearCommError(inst->hnd, NULL, &cs) == FALSE)
+    {
+        r = werr(NULL);
+    }
+    else
+    {
+        *available = (size_t)cs.cbInQue;
+    }
+
+    return r;
+}
+
+int32_t ser_read_wait(ser_t *inst)
 {
     int32_t r = 0;
 
@@ -368,23 +385,7 @@ int32_t ser_read_wait(ser_t *inst, size_t *available)
         goto cleanup;
     }
 
-    if (evts_mask & EV_RXCHAR)
-    {
-        /* optionally store available bytes */
-        if (available != NULL)
-        {
-            COMSTAT cs;
-
-            if (ClearCommError(inst->hnd, NULL, &cs) == FALSE)
-            {
-                r = werr(NULL);
-                goto cleanup;
-            }
-
-            *available = (size_t)cs.cbInQue;
-        }
-    }
-    else
+    if ((evts_mask & EV_RXCHAR) == 0)
     {
         sererr_set("Unexpected error (RX event not set)");
         r = SER_EFAIL;
@@ -446,6 +447,13 @@ int32_t ser_read(ser_t *inst, void *buf, size_t sz, size_t *recvd)
     {
         r = werr(NULL);
         goto cleanup;
+    }
+    
+    /* no more bytes available */
+    if (recvd_ == 0)
+    {
+        sererr_set("No bytes available");
+        r = SER_EEMPTY;
     }
 
     /* optionally store received bytes */
