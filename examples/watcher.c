@@ -1,5 +1,5 @@
 /**
- * @example wait.c
+ * @example watcher.c
  * Print all incoming data until no more bytes are received whithin the
  * given timeout.
  */
@@ -63,6 +63,7 @@ int32_t run(const char *port, uint32_t baudrate, int32_t timeout)
         else
         {
             printf("%c", c);
+            fflush(stdout);
         }
     }
 
