@@ -8,68 +8,75 @@
 
 int32_t run(const char *port, uint32_t baudrate, int32_t timeout)
 {
-	int32_t r = 0;
+    int32_t r = 0;
 
-	ser_t *ser;
-	ser_opts_t opts = SER_OPTS_INIT;
-	
-	char c;
+    ser_t *ser;
+    ser_opts_t opts = SER_OPTS_INIT;
 
-	/* create instance */
-	ser = ser_create();
-	if (ser == NULL)
-	{
-		fprintf(stderr, "Could not create library instance: %s\n",
-				sererr_last());
-		r = 1;
-		goto out;
-	}
+    char c;
 
-	/* open port (using default, 8N1) */
-	opts.port = port;
-	opts.baudrate = baudrate;
-	opts.timeouts.rd = timeout;
+    /* create instance */
+    ser = ser_create();
+    if (ser == NULL)
+    {
+        fprintf(stderr, "Could not create library instance: %s\n",
+                sererr_last());
+        r = 1;
+        goto out;
+    }
 
-	r = ser_open(ser, &opts);
-	if (r < 0)
-	{
-		fprintf(stderr, "Could not open port: %s\n", sererr_last());
-		goto cleanup_ser;
-	}
+    /* open port (using default, 8N1) */
+    opts.port = port;
+    opts.baudrate = baudrate;
+    opts.timeouts.rd = timeout;
 
-	/* wait until at least one char is received */
-    printf("Waiting for data...\n");
+    r = ser_open(ser, &opts);
+    if (r < 0)
+    {
+        fprintf(stderr, "Could not open port: %s\n", sererr_last());
+        goto cleanup_ser;
+    }
 
-	r = ser_read(ser, &c, sizeof(c), NULL);
-	if (r < 0)
+    /* wait until at least one char is received */
+    printf("Waiting for a character...\n");
+
+    r = ser_read_wait(ser);
+    if (r < 0)
+    {
+        fprintf(stderr, "Error while waiting: %s\n", sererr_last());
+        goto cleanup_close;
+    }
+
+    r = ser_read(ser, &c, sizeof(c), NULL);
+    if (r < 0)
     {
         fprintf(stderr, "Could not read: %s\n", sererr_last());
-		goto cleanup_close;
+        goto cleanup_close;
     }
 
     printf("Got: %c\n", c);
 
 cleanup_close:
-	ser_close(ser);
+    ser_close(ser);
 
 cleanup_ser:
-	ser_destroy(ser);
+    ser_destroy(ser);
 
 out:
-	return r;
+    return r;
 }
 
 int main(int argc, char *argv[])
 {
-	char *port;
-	uint32_t baudrate;
-	int32_t timeout = SER_NO_TIMEOUT;
+    char *port;
+    uint32_t baudrate;
+    int32_t timeout = SER_NO_TIMEOUT;
 
     /* parse options */
     if (argc < 3)
     {
         fprintf(stderr, "Usage: listen PORT BAUDRATE [TIMEOUT]\n");
-		return 1;
+        return 1;
     }
 
     port = argv[1];
@@ -80,5 +87,5 @@ int main(int argc, char *argv[])
         timeout = (int32_t)strtol(argv[3], NULL, 0);
     }
 
-	return (int)run(port, baudrate, timeout);
+    return (int)run(port, baudrate, timeout);
 }

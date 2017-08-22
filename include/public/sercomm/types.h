@@ -41,6 +41,8 @@ typedef struct ser ser_t;
 #define SER_EBUSY       -6
 /** Feature not supported. */
 #define SER_ENOTSUP     -7
+/** Buffer empty. */
+#define SER_EEMPTY     -8
 
 /** @} */
 

@@ -150,17 +150,28 @@ SER_EXPORT void ser_close(ser_t *ser);
 SER_EXPORT int32_t ser_flush(ser_t *ser, ser_queue_t queue);
 
 /**
- * Wait until serial port is ready to be read.
+ * Obtain the available number of bytes ready to be read.
  *
  * @param [in] ser
  *      Opened library instance.
  * @param [out] available
- *      Number of bytes available to be read (optional).
+ *      Where number of available bytes will be stored.
  *
  * @return
  *      0 on success, error code otherwise.
  */
-SER_EXPORT int32_t ser_read_wait(ser_t *ser, size_t *available);
+SER_EXPORT int32_t ser_available(ser_t *ser, size_t *available);
+
+/**
+ * Wait until serial port is ready to be read.
+ *
+ * @param [in] ser
+ *      Opened library instance.
+ *
+ * @return
+ *      0 on success, error code otherwise.
+ */
+SER_EXPORT int32_t ser_read_wait(ser_t *ser);
 
 /**
  * Read from serial port.

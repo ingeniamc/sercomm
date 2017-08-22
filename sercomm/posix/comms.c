@@ -49,6 +49,50 @@ typedef enum
 } ser_op_t;
 
 /**
+ * Convert errno codes to sercomm errors.
+ *
+ * @param [in] code
+ *      Errno code.
+ *
+ * @returns
+ *      sercomm error code.
+ */
+static int32_t error_set(int code)
+{
+    int32_t r;
+
+    switch (code)
+    {
+        case 0:
+            r = 0;
+            break;
+        case ENOENT:
+            sererr_set("No such device");
+            r = SER_ENODEV;
+            break;
+        case EBUSY:
+            sererr_set("Device is busy");
+            r = SER_EBUSY;
+            break;
+        case EIO:
+        case ENXIO:
+            sererr_set("Device was disconnected");
+            r = SER_EDISCONN;
+            break;
+        case EAGAIN:
+            sererr_set("No bytes available");
+            r = SER_EEMPTY;
+            break;
+        default:
+            sererr_set("%s", strerror(errno));
+            r = SER_EFAIL;
+            break;
+    }
+
+    return r;
+}
+
+/**
  * Configure port.
  *
  * @param [in] ser
@@ -70,8 +114,7 @@ static int32_t port_configure(ser_t *ser, const ser_opts_t *opts)
     /* store current attributes */
     if (tcgetattr(ser->fd, &ser->tios_old) < 0)
     {
-        sererr_set("%s", strerror(errno));
-        r = SER_EFAIL;
+        r = error_set(errno);
         goto out;
     }
 
@@ -285,8 +328,7 @@ static int32_t port_configure(ser_t *ser, const ser_opts_t *opts)
 
         if (ioctl(ser->fd, IOSSIOSPEED, &speed, 1) < 0)
         {
-            sererr_set("%s", strerror(errno));
-            r = SER_EFAIL;
+            r = error_set(errno);
             goto out;
         }
 #elif defined(__linux__)
@@ -295,8 +337,7 @@ static int32_t port_configure(ser_t *ser, const ser_opts_t *opts)
 
         if (ioctl (ser->fd, TIOCGSERIAL, &lser) < 0)
         {
-            sererr_set("%s", strerror(errno));
-            r = SER_EFAIL;
+            r = error_set(errno);
             goto out;
         }
 
@@ -307,8 +348,7 @@ static int32_t port_configure(ser_t *ser, const ser_opts_t *opts)
 
         if (ioctl (ser->fd, TIOCSSERIAL, &lser) < 0)
         {
-            sererr_set("%s", strerror(errno));
-            r = SER_EFAIL;
+            r = error_set(errno);
             goto out;
         }
 #else
@@ -392,14 +432,13 @@ static int32_t port_configure(ser_t *ser, const ser_opts_t *opts)
     ser->timeouts.rd = (int)opts->timeouts.rd;
     ser->timeouts.wr = (int)opts->timeouts.rd;
 
-    tios.c_cc[VMIN] = 0;
+    tios.c_cc[VMIN] = 1;
     tios.c_cc[VTIME] = 0;
 
     /* apply new attributes (after flushing) */
     if (tcsetattr(ser->fd, TCSAFLUSH, &tios) < 0)
     {
-        sererr_set("%s", strerror(errno));
-        r = SER_EFAIL;
+        r = error_set(errno);
     }
 
 out:
@@ -415,47 +454,6 @@ out:
 void port_restore(ser_t *ser)
 {
     (void)tcsetattr(ser->fd, TCSANOW, &ser->tios_old);
-}
-
-/**
- * Obtain available bytes in the port input queue.
- *
- * @param [in] ser
- *      Opened library instance.
- * @param [out] available
- *      Number of available bytes.
- *
- * @return
- *      0 on success, error code otherwise.
- */
-static int32_t port_available_bytes(ser_t *ser, size_t *available)
-{
-    int32_t r;
-
-    int cinq = 0;
-
-    if (ioctl(ser->fd, TIOCINQ, &cinq) < 0)
-    {
-        switch (errno)
-        {
-            case EIO:
-            case ENXIO:
-                sererr_set("Device was disconnected");
-                r = SER_EDISCONN;
-                break;
-            default:
-                sererr_set("%s", strerror(errno));
-                r = SER_EFAIL;
-                break;
-        }
-    }
-    else
-    {
-        *available = (size_t)cinq;
-        r = 0;
-    }
-
-    return r;
 }
 
 /**
@@ -507,8 +505,7 @@ static int32_t port_wait_ready(ser_t *ser, ser_op_t op, int *timeout)
 
         if (clock_gettime(CLOCK_MONOTONIC, &start) < 0)
         {
-            sererr_set("%s", strerror(errno));
-            r = SER_EFAIL;
+            r = error_set(errno);
             goto out;
         }
 
@@ -516,8 +513,7 @@ static int32_t port_wait_ready(ser_t *ser, ser_op_t op, int *timeout)
 
         if (clock_gettime(CLOCK_MONOTONIC, &end) < 0)
         {
-            sererr_set("%s", strerror(errno));
-            r = SER_EFAIL;
+            r = error_set(errno);
             goto out;
         }
 
@@ -561,22 +557,7 @@ int32_t ser_open(ser_t *ser, const ser_opts_t *opts)
     ser->fd = open(opts->port, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (ser->fd < 0)
     {
-        switch (errno)
-        {
-            case ENOENT:
-                sererr_set("No such device");
-                r = SER_ENODEV;
-                break;
-            case EBUSY:
-                sererr_set("Device is busy");
-                r = SER_EBUSY;
-                break;
-            default:
-                sererr_set("%s", strerror(errno));
-                r = SER_EFAIL;
-                break;
-        }
-
+        r = error_set(errno);
         goto out;
     }
 
@@ -632,64 +613,63 @@ int32_t ser_flush(ser_t *ser, ser_queue_t queue)
     {
         if (tcflush(ser->fd, queue_) < 0)
         {
-            switch (errno)
-            {
-                case EIO:
-                case ENXIO:
-                    sererr_set("Device was disconnected");
-                    r = SER_EDISCONN;
-                    break;
-                default:
-                    sererr_set("%s", strerror(errno));
-                    r = SER_EFAIL;
-                    break;
-            }
+            r = error_set(errno);
         }
     }
 
     return r;
 }
 
-int32_t ser_read_wait(ser_t *ser, size_t *available)
+int32_t ser_available(ser_t *ser, size_t *available)
 {
     int32_t r;
-    int timeout = ser->timeouts.rd;
 
-    /* wait until read is ready */
-    r = port_wait_ready(ser, SER_OP_RD, &timeout);
+    int cinq = 0;
 
-    /* optionally retrieve available bytes */
-    if ((r == 0) && (available != NULL))
+    if (ioctl(ser->fd, TIOCINQ, &cinq) < 0)
     {
-        r = port_available_bytes(ser, available);
+        r = error_set(errno);
+    }
+    else
+    {
+        *available = (size_t)cinq;
+        r = 0;
     }
 
     return r;
+}
+
+int32_t ser_read_wait(ser_t *ser)
+{
+    int timeout = ser->timeouts.rd;
+
+    /* wait until read is ready */
+    return port_wait_ready(ser, SER_OP_RD, &timeout);
 }
 
 int32_t ser_read(ser_t *ser, void *buf, size_t sz, size_t *recvd)
 {
     int32_t r = 0;
 
-    ssize_t recvd_ = 0;
+    ssize_t recvd_;
 
-    /* perform read */
     recvd_ = read(ser->fd, buf, sz);
 
-    /* not enough bytes read (i.e. port is in bad state, user did not wait
-     * or user requested more data than available) */
-    if (recvd_ != (ssize_t)sz)
-    {
-        sererr_set("Could not read enough bytes (%zd/%zu)", recvd_, sz);
-        r = SER_EFAIL;
-    }
-    else
+    if (recvd_ > 0)
     {
         /* optionally store read bytes */
         if (recvd != NULL)
         {
             *recvd = (size_t)recvd_;
         }
+    }
+    else if (recvd_ == 0)
+    {
+        r = error_set(EIO);
+    }
+    else
+    {
+        r = error_set(errno);
     }
 
     return r;
@@ -723,10 +703,9 @@ int32_t ser_write(ser_t *ser, const void *buf, size_t sz, size_t *sent)
             sent_ += (size_t)sent_now;
 
             /* write available but no data written: device disconnected */
-            if (sent_now < 1)
+            if ((sent_now < 1) && (errno != EAGAIN))
             {
-                sererr_set("Device was disconnected");
-                r = SER_EDISCONN;
+                error_set(EIO);
                 stop = true;
             }
             else
