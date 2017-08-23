@@ -41,6 +41,7 @@ option(WITH_EXAMPLES   "Build library usage example apps"        OFF)
 option(WITH_DOCS       "Build library public API documentation"  OFF)
 option(WITH_ERRDESC    "Support for detailed error descriptions" ON)
 option(WITH_DEVMON     "Support for device listing/monitoring"   ON)
+option(WITH_PIC        "Generate position independent code"      OFF)
 
 if(WITH_GITINFO)
   find_package(Git REQUIRED)
@@ -122,6 +123,11 @@ else()
 endif()
 
 add_library(sercomm ${sercomm_srcs})
+
+# Options
+if(WITH_PIC)
+  set_target_properties(sercomm PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 
 # Includes
 target_include_directories(

@@ -41,6 +41,8 @@ The following build options are available:
   included in version. This may be useful to trace installed development builds.
 - `WITH_DEVMON` (ON): When enabled, device listing and monitoring will be
   supported.
+- `WITH_PIC` (OFF): When enabled, generated code will be position independent.
+  This may be useful if you want to embed sercomm into a dynamic library.
 
 Furthermore, *standard* CMake build options can be used. You may find useful to
 read this list of [useful CMake variables][cmakeuseful].
