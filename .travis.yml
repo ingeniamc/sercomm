@@ -12,3 +12,6 @@ addons:
 script:
   - cmake -H. -B_build
   - cmake --build _build
+
+notifications:
+  email: false
