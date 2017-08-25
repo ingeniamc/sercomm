@@ -1,6 +1,7 @@
 # Libsercomm - A Multiplatform Serial Communications Library
 
 [![Build Status](https://travis-ci.org/ingeniamc/sercomm.svg?branch=master)](https://travis-ci.org/ingeniamc/sercomm)
+[![Build status](https://ci.appveyor.com/api/projects/status/h0j5rt7sf134cyt3?svg=true)](https://ci.appveyor.com/project/gmarull/sercomm)
 
 `libsercomm` is a portable, pure C implementation library for serial
 communications.
