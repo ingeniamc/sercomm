@@ -15,4 +15,4 @@ addons:
 
 script:
   - cmake -H. -B_build
-  - cmake --build build
+  - cmake --build _build
