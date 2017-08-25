@@ -1,0 +1,18 @@
+language: c
+
+os:
+  - linux
+  - osx
+
+compiler:
+  - gcc
+  - clang
+
+addons:
+  apt:
+    packages:
+      - libudev-dev
+
+script:
+  - cmake -H. -B_build
+  - cmake --build build
