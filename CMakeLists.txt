@@ -54,6 +54,11 @@ if(WITH_GITINFO)
   )
 endif()
 
+# Build a shared library by default
+if(NOT DEFINED BUILD_SHARED_LIBS)
+  set(BUILD_SHARED_LIBS ON)
+endif()
+
 if(NOT BUILD_SHARED_LIBS)
   set(SER_STATIC ON)
 endif()
