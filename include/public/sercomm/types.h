@@ -29,7 +29,9 @@
 
 /** Visual Studio 2008 does not provide C99 fixed-size integers. */
 #ifdef _MSC_VER
-#  if _MSC_VER == 1500
+#  if _MSC_VER > 1500
+#    include <stdint.h>
+#  elif _MSC_VER == 1500
 typedef signed __int8 int8_t;
 typedef signed __int16 int16_t;
 typedef signed __int32 int32_t;
