@@ -76,10 +76,10 @@ typedef enum
     SER_DEV_EVT_ADDED,
     /** Device removed */
     SER_DEV_EVT_REMOVED
-} ser_dev_event_t;
+} ser_dev_evt_t;
 
 /** Event callback. */
-typedef void (*ser_dev_on_event_t)(void *ctx, ser_dev_event_t event,
+typedef void (*ser_dev_on_event_t)(void *ctx, ser_dev_evt_t event,
                                    const ser_dev_t *dev);
 
 /**
