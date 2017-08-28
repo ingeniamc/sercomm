@@ -27,7 +27,7 @@
 # General
 
 cmake_minimum_required(VERSION 3.0)
-project(sercomm LANGUAGES C VERSION 1.2.0)
+project(sercomm LANGUAGES C VERSION 1.3.0)
 
 set(CMAKE_MODULE_PATH
   ${CMAKE_SOURCE_DIR}/cmake
