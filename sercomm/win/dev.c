@@ -26,7 +26,6 @@
 
 #include <Windows.h>
 
-#include <stdbool.h>
 #include <string.h>
 #include <setupapi.h>
 #include <initguid.h>
@@ -198,7 +197,7 @@ static LRESULT CALLBACK dev_mon_win_msg_proc(HWND hWnd, UINT message,
             if (bdintf->dbcc_devicetype == DBT_DEVTYP_DEVICEINTERFACE)
             {
                 ser_dev_evt_t evt = SER_DEV_EVT_ADDED;
-                bool event_supported = true;
+                int event_supported = 1;
 
                 switch (wParam)
                 {
@@ -209,10 +208,10 @@ static LRESULT CALLBACK dev_mon_win_msg_proc(HWND hWnd, UINT message,
                     evt = SER_DEV_EVT_REMOVED;
                     break;
                 default:
-                    event_supported = false;
+                    event_supported = 0;
                 }
 
-                if (event_supported == true)
+                if (event_supported == 1)
                 {
                     ser_dev_mon_t *mon;
                     ser_dev_t dev;
@@ -463,7 +462,7 @@ void ser_dev_list_destroy(ser_dev_list_t *lst)
 ser_dev_mon_t *ser_dev_monitor_init(ser_dev_on_event_t on_event, void *ctx)
 {
     ser_dev_mon_t *mon = NULL;
-    bool initialized = false;
+    int initialized = 0;
     DWORD wr;
 
     /* allocate monitor resources */
@@ -507,7 +506,7 @@ ser_dev_mon_t *ser_dev_monitor_init(ser_dev_on_event_t on_event, void *ctx)
         goto cleanup_td;
     }
 
-    initialized = true;
+    initialized = 1;
 
     goto cleanup_init;
 
@@ -518,7 +517,7 @@ cleanup_init:
     CloseHandle(mon->init);
 
 out:
-    if (initialized == false)
+    if (initialized == 0)
     {
         free(mon);
         mon = NULL;
