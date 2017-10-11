@@ -304,7 +304,15 @@ void ser_close(ser_t *inst)
     SetCommState(inst->hnd, &inst->dcb_old);
     SetCommTimeouts(inst->hnd, &inst->timeouts_old);
 
-    CloseHandle(inst->hnd);
+    /* QUIRK: CloseHandle may raise an exception which may lead to crashes
+     * when running, for example, from a Python wrapper. This situation has
+     * only been observed on some virtual COM ports.
+     */
+    __try
+    {
+        CloseHandle(inst->hnd);
+    }
+    __except (EXCEPTION_CONTINUE_EXECUTION) {}
 }
 
 int32_t ser_flush(ser_t *inst, ser_queue_t flush)
