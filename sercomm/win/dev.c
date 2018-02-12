@@ -68,6 +68,8 @@ struct ser_dev_mon
     DWORD td_id;
     /** Initialization finished event */
     HANDLE init;
+    /** Window class registered flag */
+    int class_reg;
     /** Callback */
     ser_dev_on_event_t on_event;
     /** Callback context */
@@ -242,40 +244,18 @@ static DWORD WINAPI ser_dev_monitor(LPVOID lpParam)
 {
     ser_dev_mon_t *mon = lpParam;
 
-    HINSTANCE inst;
-    WNDCLASS wndc;
     HWND wnd;
     HDEVNOTIFY dev_notifier;
     DEV_BROADCAST_DEVICEINTERFACE dev_filter;
     MSG msg;
 
-    /* get the instance of the current thread */
-    inst = GetModuleHandle(NULL);
-
-    /* register dummy window class (required for the dummy window) */
-    wndc.style = 0;
-    wndc.lpfnWndProc = dev_mon_win_msg_proc;
-    wndc.cbClsExtra = 0;
-    wndc.cbWndExtra = 0;
-    wndc.hInstance = inst;
-    wndc.hIcon = NULL;
-    wndc.hCursor = NULL;
-    wndc.hbrBackground = NULL;
-    wndc.lpszMenuName = NULL;
-    wndc.lpszClassName = WND_CLASS_NAME;
-
-    if (RegisterClass(&wndc) == 0)
-    {
-        goto out;
-    }
-
     /* create dummy window (required to capture device change events) */
-    wnd = CreateWindow(WND_CLASS_NAME, NULL, 0, 0, 0, 0, 0, NULL, NULL, inst,
-                       NULL);
+    wnd = CreateWindow(WND_CLASS_NAME, NULL, 0, 0, 0, 0, 0, NULL, NULL,
+                       GetModuleHandle(NULL), NULL);
     if (wnd == NULL)
     {
         werr_set();
-        goto cleanup_wndc;
+        goto out;
     }
 
     /* attach the monitor instance to the Window */
@@ -315,9 +295,6 @@ static DWORD WINAPI ser_dev_monitor(LPVOID lpParam)
 
 cleanup_wnd:
     DestroyWindow(wnd);
-
-cleanup_wndc:
-    UnregisterClass(WND_CLASS_NAME, inst);
 
 out:
     return 0;
@@ -462,6 +439,8 @@ void ser_dev_list_destroy(ser_dev_list_t *lst)
 ser_dev_mon_t *ser_dev_monitor_init(ser_dev_on_event_t on_event, void *ctx)
 {
     ser_dev_mon_t *mon = NULL;
+    WNDCLASS wndc;
+    HINSTANCE inst;
     int initialized = 0;
     DWORD wr;
 
@@ -476,12 +455,44 @@ ser_dev_mon_t *ser_dev_monitor_init(ser_dev_on_event_t on_event, void *ctx)
     mon->on_event = on_event;
     mon->ctx = ctx;
 
+    /* register dummy window class (required for device events) */
+    inst = GetModuleHandle(NULL);
+
+    wndc.style = 0;
+    wndc.lpfnWndProc = dev_mon_win_msg_proc;
+    wndc.cbClsExtra = 0;
+    wndc.cbWndExtra = 0;
+    wndc.hInstance = inst;
+    wndc.hIcon = NULL;
+    wndc.hCursor = NULL;
+    wndc.hbrBackground = NULL;
+    wndc.lpszMenuName = NULL;
+    wndc.lpszClassName = WND_CLASS_NAME;
+
+    if (RegisterClass(&wndc) == 0)
+    {
+        wr = GetLastError();
+        if (wr == 0)
+        {
+            mon->class_reg = 1;
+        }
+        else if (wr == ERROR_CLASS_ALREADY_EXISTS)
+        {
+            mon->class_reg = 0;
+        }
+        else
+        {
+            werr_setc(wr);
+            goto out;
+        }
+    }
+
     /* create initialization synchronization objects */
     mon->init = CreateEvent(NULL, FALSE, FALSE, NULL);
     if (mon->init == NULL)
     {
         werr_set();
-        goto out;
+        goto cleanup_wndc;
     }
 
     /* create device monitoring thread, wait for initialization */
@@ -516,6 +527,12 @@ cleanup_td:
 cleanup_init:
     CloseHandle(mon->init);
 
+cleanup_wndc:
+    if (mon->class_reg)
+    {
+        UnregisterClass(WND_CLASS_NAME, inst);
+    }
+
 out:
     if (initialized == 0)
     {
@@ -532,6 +549,11 @@ void ser_dev_monitor_stop(ser_dev_mon_t *mon)
 
     WaitForSingleObject(mon->td, INFINITE);
     CloseHandle(mon->td);
+
+    if (mon->class_reg)
+    {
+        UnregisterClass(WND_CLASS_NAME, GetModuleHandle(NULL));
+    }
 
     free(mon);
 }
